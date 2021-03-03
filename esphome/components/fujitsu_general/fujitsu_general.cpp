@@ -3,15 +3,12 @@
 namespace esphome {
 namespace fujitsu_general {
 
-
 // bytes' bits are reversed for fujitsu, so nibbles are ordered 1, 0, 3, 2, 5, 4, etc...
 
 #define SET_NIBBLE(message, nibble, value) (message[nibble / 2] |= (value & 0b00001111) << ((nibble % 2) ? 0 : 4))
-#define GET_NIBBLE(message, nibble)       ((message[nibble / 2] >> ((nibble % 2) ? 0 : 4)) & 0b00001111)
+#define GET_NIBBLE(message, nibble) ((message[nibble / 2] >> ((nibble % 2) ? 0 : 4)) & 0b00001111)
 
-
-static const char *TAG = "fujitsu_general.climate";
-
+static const char* TAG = "fujitsu_general.climate";
 
 // Common header
 const uint8_t FUJITSU_GENERAL_COMMON_LENGTH = 6;
@@ -32,14 +29,12 @@ const uint8_t FUJITSU_GENERAL_MESSAGE_TYPE_OFF = 0x02;
 const uint8_t FUJITSU_GENERAL_MESSAGE_TYPE_ECONOMY = 0x09;
 const uint8_t FUJITSU_GENERAL_MESSAGE_TYPE_NUDGE = 0x6C;
 
-
 // State header
 const uint8_t FUJITSU_GENERAL_STATE_HEADER_BYTE0 = 0x09;
 const uint8_t FUJITSU_GENERAL_STATE_HEADER_BYTE1 = 0x30;
 
 // State footer
 const uint8_t FUJITSU_GENERAL_STATE_FOOTER_BYTE0 = 0x20;
-
 
 // Temperature
 const uint8_t FUJITSU_GENERAL_TEMPERATURE_NIBBLE = 16;
@@ -77,7 +72,6 @@ const uint8_t FUJITSU_GENERAL_SWING_BOTH = 0x03;
 // const uint8_t FUJITSU_GENERAL_OUTDOOR_UNIT_LOW_NOISE_BYTE14 = 0xA0;
 // const uint8_t FUJITSU_GENERAL_STATE_BYTE14 = 0x20;
 
-
 const uint16_t FUJITSU_GENERAL_HEADER_MARK = 3300;
 const uint16_t FUJITSU_GENERAL_HEADER_SPACE = 1600;
 
@@ -89,7 +83,6 @@ const uint16_t FUJITSU_GENERAL_TRL_MARK = 420;
 const uint16_t FUJITSU_GENERAL_TRL_SPACE = 8000;
 
 const uint32_t FUJITSU_GENERAL_CARRIER_FREQUENCY = 38000;
-
 
 void FujitsuGeneralClimate::transmit_state() {
   if (this->mode == climate::CLIMATE_MODE_OFF) {
@@ -115,7 +108,8 @@ void FujitsuGeneralClimate::transmit_state() {
   remote_state[14] = FUJITSU_GENERAL_STATE_FOOTER_BYTE0;
 
   // Set temperature
-  uint8_t temperature_clamped = (uint8_t) roundf(clamp(this->target_temperature, FUJITSU_GENERAL_TEMP_MIN, FUJITSU_GENERAL_TEMP_MAX));
+  uint8_t temperature_clamped =
+      (uint8_t) roundf(clamp(this->target_temperature, FUJITSU_GENERAL_TEMP_MIN, FUJITSU_GENERAL_TEMP_MAX));
   uint8_t temperature_offset = temperature_clamped - FUJITSU_GENERAL_TEMP_MIN;
   SET_NIBBLE(remote_state, FUJITSU_GENERAL_TEMPERATURE_NIBBLE, temperature_offset);
 
@@ -185,7 +179,6 @@ void FujitsuGeneralClimate::transmit_state() {
 
   remote_state[FUJITSU_GENERAL_STATE_MESSAGE_LENGTH - 1] = this->checksum_state_(remote_state);
 
-
   this->transmit_(remote_state, FUJITSU_GENERAL_STATE_MESSAGE_LENGTH);
 
   this->power_ = true;
@@ -203,13 +196,13 @@ void FujitsuGeneralClimate::transmit_off_() {
   remote_state[4] = FUJITSU_GENERAL_COMMON_BYTE4;
   remote_state[5] = FUJITSU_GENERAL_MESSAGE_TYPE_OFF;
   remote_state[6] = this->checksum_util_(remote_state);
-  
+
   this->transmit_(remote_state, FUJITSU_GENERAL_UTIL_MESSAGE_LENGTH);
 
   this->power_ = false;
 }
 
-void FujitsuGeneralClimate::transmit_(const uint8_t message[], const uint8_t length) {
+void FujitsuGeneralClimate::transmit_(uint8_t const* message, uint8_t length) {
   ESP_LOGV(TAG, "Transmit message length %d", length);
 
   auto transmit = this->transmitter_->transmit();
@@ -224,7 +217,7 @@ void FujitsuGeneralClimate::transmit_(const uint8_t message[], const uint8_t len
   // Data
   for (uint8_t i = 0; i < length; ++i) {
     const uint8_t byte = message[i];
-    for (uint8_t mask = 0b00000001; mask > 0; mask <<= 1) { // write from right to left
+    for (uint8_t mask = 0b00000001; mask > 0; mask <<= 1) {  // write from right to left
       data->mark(FUJITSU_GENERAL_BIT_MARK);
       bool bit = byte & mask;
       data->space(bit ? FUJITSU_GENERAL_ONE_SPACE : FUJITSU_GENERAL_ZERO_SPACE);
@@ -238,7 +231,7 @@ void FujitsuGeneralClimate::transmit_(const uint8_t message[], const uint8_t len
   transmit.perform();
 }
 
-uint8_t FujitsuGeneralClimate::checksum_state_(const uint8_t message[]) {
+uint8_t FujitsuGeneralClimate::checksum_state_(uint8_t const* message) {
   uint8_t checksum = 0;
   for (uint8_t i = 7; i < FUJITSU_GENERAL_STATE_MESSAGE_LENGTH - 1; ++i) {
     checksum += message[i];
@@ -246,9 +239,7 @@ uint8_t FujitsuGeneralClimate::checksum_state_(const uint8_t message[]) {
   return 256 - checksum;
 }
 
-uint8_t FujitsuGeneralClimate::checksum_util_(const uint8_t message[]) {
-  return 255 - message[5];
-}
+uint8_t FujitsuGeneralClimate::checksum_util_(uint8_t const* message) { return 255 - message[5]; }
 
 bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
   ESP_LOGV(TAG, "Received IR message");
@@ -266,14 +257,14 @@ bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
     // Read bit
     for (uint8_t bit = 0; bit < 8; ++bit) {
       if (data.expect_item(FUJITSU_GENERAL_BIT_MARK, FUJITSU_GENERAL_ONE_SPACE)) {
-        recv_message[byte] |= 1 << bit; // read from right to left
+        recv_message[byte] |= 1 << bit;  // read from right to left
       } else if (!data.expect_item(FUJITSU_GENERAL_BIT_MARK, FUJITSU_GENERAL_ZERO_SPACE)) {
         ESP_LOGV(TAG, "Byte %d bit %d fail", byte, bit);
         return false;
       }
     }
   }
-  
+
   const uint8_t recv_message_type = recv_message[FUJITSU_GENERAL_MESSAGE_TYPE_BYTE];
   uint8_t recv_message_length;
 
@@ -297,7 +288,7 @@ bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
   for (uint8_t byte = FUJITSU_GENERAL_COMMON_LENGTH; byte < recv_message_length; ++byte) {
     for (uint8_t bit = 0; bit < 8; ++bit) {
       if (data.expect_item(FUJITSU_GENERAL_BIT_MARK, FUJITSU_GENERAL_ONE_SPACE)) {
-        recv_message[byte] |= 1 << bit; // read from right to left
+        recv_message[byte] |= 1 << bit;  // read from right to left
       } else if (!data.expect_item(FUJITSU_GENERAL_BIT_MARK, FUJITSU_GENERAL_ZERO_SPACE)) {
         ESP_LOGV(TAG, "Byte %d bit %d fail", byte, bit);
         return false;
@@ -311,11 +302,9 @@ bool FujitsuGeneralClimate::on_receive(remote_base::RemoteReceiveData data) {
     return false;
   }
 
-
   for (uint8_t byte = 0; byte < recv_message_length; ++byte) {
     ESP_LOGVV(TAG, "%02X", recv_message[byte]);
   }
-
 
   const uint8_t recv_checksum = recv_message[recv_message_length - 1];
   uint8_t calculated_checksum;
