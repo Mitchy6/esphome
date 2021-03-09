@@ -36,15 +36,15 @@ CONF_PARTIAL_UPDATING = "partial_updating"
 
 
 
-EPD6_ns = cg.esphome_ns.namespace("EPD6")
-EPD6 = EPD6_ns.class_(
-    "EPD6", cg.PollingComponent, i2c.I2CDevice, display.DisplayBuffer
+epd6_ns = cg.esphome_ns.namespace("epd6")
+epd6 = epd6_ns.class_(
+    "epd6", cg.PollingComponent, i2c.I2CDevice, display.DisplayBuffer
 )
 
 CONFIG_SCHEMA = cv.All(
     display.FULL_DISPLAY_SCHEMA.extend(
         {
-            cv.GenerateID(): cv.declare_id(EPD6),
+            cv.GenerateID(): cv.declare_id(epd6),
             cv.Optional(CONF_GREYSCALE, default=False): cv.boolean,
             cv.Optional(CONF_PARTIAL_UPDATING, default=True): cv.boolean,
             cv.Optional(CONF_FULL_UPDATE_EVERY, default=10): cv.uint32_t,
